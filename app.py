@@ -16,11 +16,69 @@ TREASURY_URL = (
 
 st.markdown("""
 <style>
-.block-container {padding-top: 1.4rem;}
-.hero {padding:24px;border-radius:16px;background:linear-gradient(110deg,#102a43,#176b87);color:white;}
-.hero h1 {color:white;}
-.hero p {color:#e6f3f8;}
-div[data-testid="stMetric"] {background:white;border:1px solid #e2e8f0;padding:14px;border-radius:12px;}
+:root {
+    --navy: #10243a;
+    --blue: #176b87;
+    --teal: #11a7a0;
+    --ink: #172b4d;
+    --muted: #61738a;
+    --line: #dce5ef;
+}
+.stApp {background: #f4f7fb; color: var(--ink);}
+.block-container {padding-top: 1.15rem; padding-bottom: 3rem; max-width: 1500px;}
+[data-testid="stHeader"] {background: rgba(244,247,251,.92);}
+[data-testid="stSidebar"] {background: linear-gradient(180deg,#10243a 0%,#173d59 100%);}
+[data-testid="stSidebar"] * {color: #f3f7fb !important;}
+[data-testid="stSidebar"] [data-testid="stRadio"] label {font-weight: 600;}
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {color:#c7d7e6 !important;}
+.hero {
+    padding: 30px 34px; border-radius: 22px;
+    background: linear-gradient(115deg,#10243a 0%,#176b87 62%,#11a7a0 100%);
+    color: white; box-shadow: 0 12px 30px rgba(16,36,58,.16);
+    margin: 4px 0 22px 0; position: relative; overflow: hidden;
+}
+.hero:after {
+    content:""; position:absolute; width:240px; height:240px; border-radius:50%;
+    right:-65px; top:-105px; border:34px solid rgba(255,255,255,.10);
+}
+.hero h1 {color:white !important; font-size:2.25rem !important; margin:0 0 8px 0;}
+.hero p {color:#e6f3f8 !important; font-size:1.05rem; margin:0; max-width:850px;}
+.eyebrow {font-size:.76rem; letter-spacing:.13em; text-transform:uppercase;
+    color:#a9e7e3; font-weight:800; margin-bottom:9px;}
+h1,h2,h3 {color:#172b4d !important; letter-spacing:-.02em;}
+h2 {margin-top:1.2rem !important;}
+div[data-testid="stMetric"] {
+    background: #ffffff; border:1px solid #dce5ef; border-radius:16px;
+    padding:18px 20px; box-shadow:0 5px 16px rgba(31,55,80,.06);
+    min-height:112px;
+}
+div[data-testid="stMetric"] label,
+div[data-testid="stMetric"] label p {
+    color:#52677f !important; font-size:.88rem !important; font-weight:650 !important;
+}
+div[data-testid="stMetric"] [data-testid="stMetricValue"],
+div[data-testid="stMetric"] [data-testid="stMetricValue"] > div {
+    color:#10243a !important; font-size:1.85rem !important; font-weight:800 !important;
+}
+div[data-testid="stMetric"] [data-testid="stMetricDelta"] {font-weight:650;}
+.stAlert {border-radius:13px;}
+div[data-testid="stDataFrame"], div[data-testid="stTable"] {
+    border:1px solid #dce5ef; border-radius:14px; overflow:hidden;
+}
+div[data-testid="stPlotlyChart"] {
+    background:#fff; border:1px solid #e0e8f1; border-radius:16px;
+    padding:10px 10px 2px 10px; box-shadow:0 5px 16px rgba(31,55,80,.045);
+}
+.stButton button, .stDownloadButton button {
+    border-radius:10px; font-weight:700; border:0;
+}
+.stButton button[kind="primary"] {background:linear-gradient(90deg,#176b87,#11a7a0);}
+hr {border-color:#dce5ef;}
+.small-note {color:#61738a; font-size:.88rem;}
+@media (max-width: 800px) {
+    .hero {padding:22px;}
+    .hero h1 {font-size:1.65rem !important;}
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -112,8 +170,9 @@ with st.sidebar:
 
 st.markdown("""
 <div class="hero">
-<h1>Stochastic Interest Rate Modelling</h1>
-<p>Historical yield curves, automatic preprocessing, Vasicek calibration and stochastic predictions.</p>
+  <div class="eyebrow">QUANTITATIVE FINANCE · LIVE DATA DASHBOARD</div>
+  <h1>Stochastic Interest Rate Lab</h1>
+  <p>Explore Treasury yield curves, understand market movements and generate model-based interest-rate scenarios — with historical data loaded automatically.</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -137,7 +196,8 @@ if clean is not None and st.session_state.model_result is None and not st.sessio
         st.session_state.model_error = str(exc)
 
 if page == "Overview":
-    st.subheader("Project overview")
+    st.subheader("Market snapshot")
+    st.markdown('<p class="small-note">A quick view of the latest available dataset and the model pipeline status.</p>', unsafe_allow_html=True)
     if raw is None:
         st.error(st.session_state.get("load_error", "Historical data could not be loaded."))
         st.info("The app owner should check the Treasury data connection or add a local CSV fallback.")
@@ -147,14 +207,31 @@ if page == "Overview":
         c2.metric("Maturity tenors", len(TENORS))
         c3.metric("Missing cells after cleaning", int(clean.isna().sum().sum()))
         c4.metric("Data source", "U.S. Treasury" if st.session_state.data_source == "official" else "Local CSV")
-        st.success("Data is ready automatically. Visitors do not need to upload a file.")
-        st.subheader("Latest historical observations")
-        st.dataframe(clean.tail(10), use_container_width=True, hide_index=True)
+        st.success("Live dataset ready · preprocessing completed · no visitor upload required.")
         last = clean.iloc[-1]
         curve = pd.DataFrame({"Maturity": TENORS, "Yield (%)": [last[t] for t in TENORS]})
-        st.plotly_chart(px.line(curve, x="Maturity", y="Yield (%)", markers=True,
-                                title=f"Latest yield curve — {last['Date'].date()}"),
-                        use_container_width=True)
+        left, right = st.columns([1.15, 0.85], gap="large")
+        with left:
+            st.markdown("### Latest Treasury yield curve")
+            fig_curve = px.line(
+                curve, x="Maturity", y="Yield (%)", markers=True,
+                title=f"Yield by maturity · {last['Date'].date()}"
+            )
+            fig_curve.update_traces(line=dict(width=3), marker=dict(size=9))
+            fig_curve.update_layout(template="plotly_white", height=370,
+                margin=dict(l=20,r=20,t=60,b=20), title_font_size=16,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#233b53"))
+            st.plotly_chart(fig_curve, use_container_width=True)
+        with right:
+            st.markdown("### At a glance")
+            st.metric("Latest observation", last["Date"].strftime("%d %b %Y"))
+            st.metric("10-year Treasury yield", f"{last['10 Yr']:.2f}%")
+            st.metric("30-year Treasury yield", f"{last['30 Yr']:.2f}%")
+            st.markdown('<p class="small-note">Rates are shown as published by the U.S. Treasury. Latest date depends on the source update schedule.</p>', unsafe_allow_html=True)
+
+        st.subheader("Latest historical observations")
+        st.dataframe(clean.tail(8), use_container_width=True, hide_index=True)
 
         st.subheader("Automatic stochastic prediction")
         if st.session_state.model_result:
@@ -165,12 +242,18 @@ if page == "Overview":
             m3.metric("Evaluation R²", f"{metrics['R2']:.5f}")
             sim = st.session_state.model_result["simulation"]
             five_year = sim[sim["Tenor"] == "5 Yr"]
-            st.plotly_chart(
-                px.line(five_year, x="Future_Trading_Day", y="Mean_Prediction",
-                        title="Automatic 30-trading-day forecast — 5-year maturity"),
-                use_container_width=True
+            forecast_fig = px.line(
+                five_year, x="Future_Trading_Day", y="Mean_Prediction",
+                title="5-year maturity · expected forecast path"
             )
-            st.caption("Default forecast: 30 trading days and 1,000 stochastic simulation paths. Open Model & Prediction to explore other maturities and settings.")
+            forecast_fig.update_traces(line=dict(width=3, color="#176b87"))
+            forecast_fig.update_layout(template="plotly_white", height=360,
+                margin=dict(l=20,r=20,t=60,b=20), title_font_size=16,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                xaxis_title="Future trading day", yaxis_title="Predicted yield (%)",
+                font=dict(color="#233b53"))
+            st.plotly_chart(forecast_fig, use_container_width=True)
+            st.caption("Default scenario: 30 trading days · 1,000 simulation paths. Explore maturities and settings in Model & Prediction. Model outputs are scenarios, not guaranteed future rates.")
         elif st.session_state.get("model_error"):
             st.warning("Automatic prediction could not be generated: " + st.session_state.model_error)
 
@@ -220,14 +303,21 @@ elif page == "Explore Data":
         if selected:
             long_df = clean[["Date"] + selected].melt(
                 id_vars="Date", var_name="Maturity", value_name="Yield (%)")
-            st.plotly_chart(px.line(long_df, x="Date", y="Yield (%)", color="Maturity",
-                                    title="Historical interest-rate trends"),
-                            use_container_width=True)
+            trend_fig = px.line(long_df, x="Date", y="Yield (%)", color="Maturity",
+                                title="Historical interest-rate trends")
+            trend_fig.update_layout(template="plotly_white", height=470,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#233b53"), title_font_size=17)
+            st.plotly_chart(trend_fig, use_container_width=True)
             curve = pd.DataFrame({"Maturity": selected,
                                   "Yield (%)": [clean.iloc[-1][t] for t in selected]})
-            st.plotly_chart(px.line(curve, x="Maturity", y="Yield (%)", markers=True,
-                                    title="Latest selected yield curve"),
-                            use_container_width=True)
+            curve_fig = px.line(curve, x="Maturity", y="Yield (%)", markers=True,
+                                title="Latest selected yield curve")
+            curve_fig.update_traces(line=dict(width=3), marker=dict(size=9))
+            curve_fig.update_layout(template="plotly_white", height=360,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#233b53"), title_font_size=17)
+            st.plotly_chart(curve_fig, use_container_width=True)
         st.dataframe(clean[TENORS].describe().T, use_container_width=True)
 
 elif page == "Model & Prediction":
